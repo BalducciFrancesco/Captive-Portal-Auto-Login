@@ -1,3 +1,4 @@
+import logging as log
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
 from selenium.common.exceptions import WebDriverException
@@ -21,8 +22,8 @@ def get_browser(config):
         driver.set_page_load_timeout(config.getint("get_timeout", 15))
         login_url = config["url"] or config["fallback_trigger_url"]
         driver.get(login_url)
-        print(f"Navigated to: {login_url}")
+        log.info(f"Navigated to: {login_url}")
         return driver
     except (WebDriverException, KeyError) as e:
-        print(f"Error: Failed to initialize or navigate with Chrome driver: {e}")
+        log.error(f"Failed to initialize or navigate with Chrome driver: {e}")
         return None

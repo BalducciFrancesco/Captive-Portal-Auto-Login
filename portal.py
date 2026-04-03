@@ -1,4 +1,5 @@
 import time
+import logging as log
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
@@ -14,18 +15,18 @@ def login(driver, username, password):
         username_field.send_keys(username)
         password_field.send_keys(password)
         submit_button.click()
-        print("Entered credentials and submitted the form.")
+        log.info("Entered credentials and submitted the form.")
 
         time.sleep(5)  # Wait for login to process
 
         # Check for success by looking for the username field again
         try:
             driver.find_element(By.ID, "username")
-            print("Login failed.")
+            log.warning("Login failed.")
             return False
         except NoSuchElementException:
-            print("Login successful.")
+            log.info("Login successful.")
             return True
     except NoSuchElementException as e:
-        print(f"Error during login process: Could not find an element - {e}")
+        log.error(f"Could not find an element - {e}")
         return False
