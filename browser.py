@@ -13,6 +13,8 @@ def get_browser(settings: Settings):
 	"""Initialize driver and open the configured starting URL with retries."""
 	service = Service(executable_path=settings.driver_path)
 	options = Options()
+	options.binary_location = settings.browser_path
+	options.add_argument("--disable-chrome-captive-portal-detector")
 	options.add_argument("--ignore-certificate-errors")
 	options.add_argument("--ignore-ssl-errors=yes")
 	options.add_argument("--allow-running-insecure-content")
