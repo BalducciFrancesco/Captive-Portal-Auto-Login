@@ -13,12 +13,9 @@ def get_browser(settings: Settings):
 	"""Initialize driver and open the configured starting URL with retries."""
 	options = Options()
 	options.add_argument("--ignore-certificate-errors")
-	options.add_argument("--ignore-ssl-errors")
-	options.add_argument("--allow-insecure-localhost")
-	
-	if settings.browser_path:
-		options.binary_location = settings.browser_path
-	
+	options.add_argument("--ignore-ssl-errors=yes")
+	options.add_argument("--allow-running-insecure-content")
+	options.set_capability("acceptInsecureCerts", True)
 	if settings.headless:
 		options.add_argument("--headless")
 		options.add_argument("--disable-gpu")

@@ -33,7 +33,6 @@ if __name__ == "__main__":
 
     log.info("Initializing browser...")
     driver = get_browser(settings)
-    time.sleep(5)  # debugging
 
     if driver:
         try:
@@ -41,6 +40,7 @@ if __name__ == "__main__":
             log.info("Initializing login process...")
             success = login(driver, settings)
         finally:
+            time.sleep(5)  # debugging
             driver.quit()
 
     if success:
