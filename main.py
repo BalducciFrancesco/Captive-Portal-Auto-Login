@@ -63,6 +63,7 @@ Notes:
 """
 
 import time
+import configparser
 from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -70,7 +71,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 
 # Configuration
-CONFIG_FILE = "config.conf"
+CONFIG_FILE = "config.ini"  # should be a copy of template.ini with your settings
 
 # ANSI color codes for CLI output
 class Colors:
@@ -98,23 +99,13 @@ def load_config(config_file):
     if not config_path.is_absolute():
         config_path = Path(__file__).resolve().parent / config_path
 
-    config = {}
-    try:
-        for raw_line in config_path.read_text(encoding="utf-8").splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            key = key.strip().lower()
-            value = value.strip()
-            config[key] = value
-    except Exception as e:
-        colored_print(f"Error: Could not read config file {config_path}: {e}", Colors.FAIL)
-        return None
+    parser = configparser.ConfigParser()
+    parser.read(config_path, encoding="utf-8")
 
-    return config
+    if "captive_portal" not in parser:
+        colored_print(f"Error: 'captive_portal' section not found in {config_path}.", Colors.FAIL)
+        return None
+    return parser["captive_portal"]
 
 def load_credentials(credentials_file):
     credentials_path = Path(credentials_file)
@@ -242,8 +233,6 @@ def main():
     Main function to run the captive portal login script.
     """
     config = load_config(CONFIG_FILE)
-    if not config:
-        return
 
     credentials_file = config["credentials_file"]
     login_url = config["url"].strip()

@@ -6,6 +6,16 @@ This tool is designed to help you automatically log in to captive portals. Capti
 
 This script uses a program called Selenium to automate the process of logging in. It's primarily intended to be run on a Linux server, which can be useful for maintaining a consistent network connection for other devices or processes.
 
+##   Configuration Files
+
+- Copy `template.ini` to a new `config.ini` file
+- Edit all values under the `[captive_portal]` section according to your requirements
+- Credentials should be stored in a file named `credentials.txt` in the same directory as the script, with the format:
+  ```
+  email
+  password
+  ```
+
 ##   How it Works
 
 Here's a simplified breakdown of how the script works:
