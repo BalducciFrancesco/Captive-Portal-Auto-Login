@@ -11,6 +11,7 @@ from settings import Settings
 
 def get_browser(settings: Settings):
 	"""Initialize driver and open the configured starting URL with retries."""
+	service = Service(executable_path=settings.driver_path)
 	options = Options()
 	options.add_argument("--ignore-certificate-errors")
 	options.add_argument("--ignore-ssl-errors=yes")
@@ -22,14 +23,10 @@ def get_browser(settings: Settings):
 		options.add_argument("--no-sandbox")
 		options.add_argument("--disable-dev-shm-usage")
 
-	service = None
-	if settings.driver_path and Path(settings.driver_path).is_file():
-		service = Service(executable_path=settings.driver_path)
-
 	for attempt in range(settings.retries):
 		try:
 			log.info(f"Attempt {attempt + 1}/{settings.retries} (timeout={settings.get_timeout}s, target={settings.url})")
-			driver = ChromeDriver(service=service, options=options) if service else ChromeDriver(options=options)
+			driver = ChromeDriver(service=service, options=options)
 			driver.set_page_load_timeout(settings.get_timeout)
 			driver.get(settings.url)
 			return driver
