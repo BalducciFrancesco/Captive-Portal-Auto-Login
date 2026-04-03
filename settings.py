@@ -41,7 +41,7 @@ class Settings:
             retries=int(browser.get("retries", 3)),
             delay=int(browser.get("delay", 5)),
             get_timeout=int(browser.get("get_timeout", 15)),
-            sequence=list(login.get("sequence", [])),
+            sequence=list(login.get("captive_sequence", login.get("sequence", []))),
             username=username,
             password=password,
         )
