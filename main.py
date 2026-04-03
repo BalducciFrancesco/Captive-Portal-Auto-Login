@@ -69,6 +69,7 @@ from pathlib import Path
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import WebDriverException, NoSuchElementException, TimeoutException
 
 # Configuration
@@ -147,6 +148,21 @@ def execute_sequence(driver, sequence_text, username, password):
 
         raise ValueError(f"Unsupported action: {step['action']}")
 
+def wait_for_login_page(driver, sequence_text, get_timeout):
+    if not sequence_text.strip():
+        return
+
+    steps = parse_sequence(sequence_text)
+    first_selector = steps[0]["selector"]
+
+    def ready(d):
+        current = (d.current_url or "").strip().lower()
+        if current.startswith("data:") or current.startswith("chrome-error://"):
+            return False
+        return len(d.find_elements(By.CSS_SELECTOR, first_selector)) > 0
+
+    WebDriverWait(driver, get_timeout).until(ready)
+
 def login_succeeded(driver):
     if "Success" in driver.title:
         return True
@@ -186,7 +202,15 @@ def load_credentials(credentials_file):
 
     return username, password
 
-def login_to_captive_portal(url, username, password, headless=True, sequence_text="", get_timeout=15):
+def login_to_captive_portal(
+    url,
+    username,
+    password,
+    headless=True,
+    sequence_text="",
+    get_timeout=15,
+    wait_for_redirect=False,
+):
     """
     Logs in to a captive portal.
 
@@ -224,6 +248,21 @@ def login_to_captive_portal(url, username, password, headless=True, sequence_tex
         colored_print(f"Error: Failed to navigate to URL: {url} - {e}", Colors.FAIL)
         driver.quit()
         return False
+
+    if wait_for_redirect:
+        try:
+            wait_for_login_page(driver, sequence_text, get_timeout)
+        except TimeoutException:
+            colored_print(
+                f"Error: Redirect/login page not ready after {get_timeout}s. Current URL: {driver.current_url}",
+                Colors.FAIL,
+            )
+            driver.quit()
+            return False
+        except ValueError as e:
+            colored_print(f"Error: Invalid sequence config: {e}", Colors.FAIL)
+            driver.quit()
+            return False
 
     try:
         if sequence_text.strip():
@@ -278,8 +317,10 @@ def main():
     CHROME_PATH = config["chrome_path"].strip()
     CHROMEDRIVER_PATH = config["chromedriver_path"].strip()
 
+    using_fallback_url = False
     if not login_url:
         login_url = fallback_trigger_url
+        using_fallback_url = True
         colored_print(f"URL not configured. Using fallback trigger URL: {login_url}", Colors.WARNING)
 
     username, password = load_credentials(credentials_file)
@@ -288,7 +329,15 @@ def main():
 
     for attempt in range(retries):
         colored_print(f"Attempt {attempt + 1} to login to captive portal at {login_url}", Colors.OKBLUE)
-        success = login_to_captive_portal(login_url, username, password, headless, sequence_text, get_timeout)
+        success = login_to_captive_portal(
+            login_url,
+            username,
+            password,
+            headless,
+            sequence_text,
+            get_timeout,
+            using_fallback_url,
+        )
         if success:
             colored_print("Successfully logged in to the captive portal.", Colors.OKGREEN)
             return
