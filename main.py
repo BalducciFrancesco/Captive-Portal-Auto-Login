@@ -72,6 +72,7 @@ from selenium.common.exceptions import WebDriverException, NoSuchElementExceptio
 # Configuration
 CREDENTIALS_FILE = "credentials.txt"  # line 1: username, line 2: password
 URL = ""  # Replace with the captive portal URL if known, otherwise, the script will try to detect it.
+FALLBACK_TRIGGER_URL = "http://neverssl.com"  # Used when URL is empty to trigger captive portal redirect
 HEADLESS = True  # Set to True to run Chrome in headless mode (recommended for servers)
 CHROME_PATH = "/usr/bin/google-chrome"  # Path to Chrome executable (usually auto-detected)
 CHROMEDRIVER_PATH = "/usr/bin/chromedriver"  # Path to the chromedriver
@@ -225,17 +226,18 @@ def main():
     retries = 3
     delay = 5  # seconds
 
-    if not URL:
-        colored_print("Error: URL is not configured.  Please set the URL variable in the script.", Colors.FAIL)
-        return
+    login_url = URL.strip() if URL else ""
+    if not login_url:
+        login_url = FALLBACK_TRIGGER_URL
+        colored_print(f"URL not configured. Using fallback trigger URL: {login_url}", Colors.WARNING)
 
     username, password = load_credentials(CREDENTIALS_FILE)
     if not username or not password:
         return
 
     for attempt in range(retries):
-        colored_print(f"Attempt {attempt + 1} to login to captive portal at {URL}", Colors.OKBLUE)
-        success = login_to_captive_portal(URL, username, password, HEADLESS)
+        colored_print(f"Attempt {attempt + 1} to login to captive portal at {login_url}", Colors.OKBLUE)
+        success = login_to_captive_portal(login_url, username, password, HEADLESS)
         if success:
             colored_print("Successfully logged in to the captive portal.", Colors.OKGREEN)
             return
