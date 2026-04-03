@@ -8,8 +8,8 @@ import logging as log
 class Settings:
     url: str
     headless: bool
-    chrome_path: str
-    chromedriver_path: str
+    browser_path: str
+    driver_path: str
     retries: int
     delay: int
     get_timeout: int
@@ -36,8 +36,8 @@ class Settings:
         return cls(
             url=str(browser.get("url", "")).strip() or str(browser.get("fallback_trigger_url", "")).strip(),
             headless=bool(browser.get("headless", False)),
-            chrome_path=str(browser.get("chrome_path", "")).strip(),
-            chromedriver_path=str(browser.get("chromedriver_path", "")).strip(),
+            browser_path=str(browser.get("browser_path", "")).strip(),
+            driver_path=str(browser.get("driver_path", "")).strip(),
             retries=int(browser.get("retries", 3)),
             delay=int(browser.get("delay", 5)),
             get_timeout=int(browser.get("get_timeout", 15)),
