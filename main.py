@@ -1,10 +1,9 @@
 import logging as log
+import sys
 from pathlib import Path
 from browser import get_browser
 from portal import login
 from settings import Settings
-import logging as log
-import sys
 
 def setup_log():
     class ColorFormatter(log.Formatter):
@@ -29,19 +28,19 @@ def setup_log():
 if __name__ == "__main__":
     setup_log()
     settings = Settings.from_file("config/config.toml")
-    log.info(f"Startup mode={settings.mode} timeout={settings.get_timeout}s url={settings.target_url}")
+    success = False
 
-    try:
-        credentials_path = Path(settings.credentials_file)
-        username, password = credentials_path.read_text(encoding="utf-8").strip().splitlines()
-    except (KeyError, FileNotFoundError, ValueError) as e:
-        log.error(f"Could not read credentials: {e}")
+    log.info("Initializing browser...")
+    driver = get_browser(settings)
+    if driver:
+        try:
+            log.info(f"Successfully connected through browser at starting page: {driver.current_url}")
+            log.info("Initializing login process...")
+            success = login(driver, settings)
+        finally:
+            driver.quit()
+
+    if success:
+        log.info("Successfully logged in.")
     else:
-        driver = get_browser(settings)
-        if driver:
-            try:
-                login(driver, username, password)
-                log.info("Successfully logged in.")
-            finally:
-                driver.quit()
-                log.error("Login failed.")
+        log.error("Login failed.")

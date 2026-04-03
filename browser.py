@@ -27,32 +27,21 @@ def get_browser(settings: Settings):
 		else:
 			log.warning(f"chromedriver_path not found, using Selenium default resolution: {chromedriver_path}")
 
-	timeout = settings.get_timeout
-	target_url = settings.target_url
-
-	if not target_url:
-		log.error("No URL configured. Set url or fallback_trigger_url in config.toml")
-		return None
-
-	log.info(f"Mode={settings.mode} timeout={timeout}s target={target_url} retries={settings.retries}")
-
 	for attempt in range(settings.retries):
-		log.info(f"Browser attempt {attempt + 1}/{settings.retries}")
+		log.info(f"Attempt {attempt + 1}/{settings.retries} (timeout={settings.get_timeout}s, target={settings.url})")
 		driver = None
 		try:
 			driver = ChromeDriver(service=service, options=options) if service else ChromeDriver(options=options)
-			driver.set_page_load_timeout(timeout)
+			driver.set_page_load_timeout(settings.get_timeout)
 
 			try:
-				driver.get(target_url)
+				driver.get(settings.url)
 			except TimeoutException:
-				log.error(f"Navigation timeout after {timeout}s while opening: {target_url}")
+				log.error(f"Navigation timeout after {settings.get_timeout}s while opening: {settings.url}")
 				driver.quit()
 				driver = None
 
-			if driver:
-				log.info(f"Starting page opened: {driver.current_url}")
-				return driver
+			return driver
 		except WebDriverException as e:
 			log.error(f"Failed to initialize or navigate with Chrome driver: {e}")
 			if driver:

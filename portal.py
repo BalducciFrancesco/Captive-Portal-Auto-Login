@@ -2,8 +2,9 @@ import time
 import logging as log
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from settings import Settings
 
-def login(driver, username, password):
+def login(driver, settings: Settings):
     """
     Performs the login action on the captive portal page.
     """
@@ -12,8 +13,8 @@ def login(driver, username, password):
         password_field = driver.find_element(By.ID, "password")
         submit_button = driver.find_element(By.TAG_NAME, "button")
 
-        username_field.send_keys(username)
-        password_field.send_keys(password)
+        username_field.send_keys(settings.username)
+        password_field.send_keys(settings.password)
         submit_button.click()
         log.info("Entered credentials and submitted the form.")
 
