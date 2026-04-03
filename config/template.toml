@@ -10,6 +10,7 @@ get_timeout = 15
 
 [login]
 credentials_file = "./credentials.txt"
+step_delay = 0.4
 captive_sequence = [
   { action = "click", selector = "a" },
   { action = "click", selector = "#cp-modal-button-member-simple" },

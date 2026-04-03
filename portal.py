@@ -43,6 +43,7 @@ def run_sequence(driver, sequence: list[dict[str, str]], settings: Settings):
             element.send_keys(settings.username)
         elif action == "fill-password":
             element.send_keys(settings.password)
+        time.sleep(settings.step_delay)
 
 def run_fallback(driver, settings: Settings):
     """Fallback login flow for simple portals with username/password fields and a submit button."""
@@ -51,6 +52,9 @@ def run_fallback(driver, settings: Settings):
     submit_button = driver.find_element(By.TAG_NAME, "button")
 
     username_field.send_keys(settings.username)
+    time.sleep(settings.step_delay)
     password_field.send_keys(settings.password)
+    time.sleep(settings.step_delay)
     submit_button.click()
+    time.sleep(settings.step_delay)
     log.info("Entered credentials and submitted the form.")

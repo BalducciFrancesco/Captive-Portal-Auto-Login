@@ -13,6 +13,7 @@ class Settings:
     retries: int
     delay: int
     get_timeout: int
+    step_delay: float
     sequence: list[dict[str, str]]
     username: str
     password: str
@@ -41,6 +42,7 @@ class Settings:
             retries=int(browser.get("retries", 3)),
             delay=int(browser.get("delay", 5)),
             get_timeout=int(browser.get("get_timeout", 15)),
+            step_delay=float(login.get("step_delay", 0.4)),
             sequence=list(login.get("captive_sequence", login.get("sequence", []))),
             username=username,
             password=password,
