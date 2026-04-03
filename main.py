@@ -63,14 +63,14 @@ Notes:
 """
 
 import time
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 
 # Configuration
-USERNAME = "your_username"  # Replace with your captive portal username
-PASSWORD = "your_password"  # Replace with your captive portal password
+CREDENTIALS_FILE = "credentials.txt"  # line 1: username, line 2: password
 URL = ""  # Replace with the captive portal URL if known, otherwise, the script will try to detect it.
 HEADLESS = True  # Set to True to run Chrome in headless mode (recommended for servers)
 CHROME_PATH = "/usr/bin/google-chrome"  # Path to Chrome executable (usually auto-detected)
@@ -96,6 +96,35 @@ def colored_print(text, color=Colors.ENDC):
         color (str, optional): The color code to use. Defaults to Colors.ENDC (no color).
     """
     print(f"{color}{text}{Colors.ENDC}")
+
+def load_credentials(credentials_file):
+    credentials_path = Path(credentials_file)
+    if not credentials_path.is_absolute():
+        credentials_path = Path(__file__).resolve().parent / credentials_path
+
+    try:
+        lines = credentials_path.read_text(encoding="utf-8").splitlines()
+    except Exception as e:
+        colored_print(f"Error: Could not read credentials file {credentials_path}: {e}", Colors.FAIL)
+        return None, None
+
+    if len(lines) < 2:
+        colored_print(
+            f"Error: Credentials file {credentials_path} must have username on line 1 and password on line 2.",
+            Colors.FAIL,
+        )
+        return None, None
+
+    username = lines[0].strip()
+    password = lines[1].strip()
+    if not username or not password:
+        colored_print(
+            f"Error: Credentials file {credentials_path} must have non-empty username/password.",
+            Colors.FAIL,
+        )
+        return None, None
+
+    return username, password
 
 def login_to_captive_portal(url, username, password, headless=True):
     """
@@ -200,9 +229,13 @@ def main():
         colored_print("Error: URL is not configured.  Please set the URL variable in the script.", Colors.FAIL)
         return
 
+    username, password = load_credentials(CREDENTIALS_FILE)
+    if not username or not password:
+        return
+
     for attempt in range(retries):
         colored_print(f"Attempt {attempt + 1} to login to captive portal at {URL}", Colors.OKBLUE)
-        success = login_to_captive_portal(URL, USERNAME, PASSWORD, HEADLESS)
+        success = login_to_captive_portal(URL, username, password, HEADLESS)
         if success:
             colored_print("Successfully logged in to the captive portal.", Colors.OKGREEN)
             return
