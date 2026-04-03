@@ -1,2 +1,4 @@
 .vscode
-credentials.txt
+*.txt
+*.conf
+!template.conf
