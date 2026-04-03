@@ -69,7 +69,7 @@ from pathlib import Path
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import WebDriverException, NoSuchElementException
+from selenium.common.exceptions import WebDriverException, NoSuchElementException, TimeoutException
 
 # Configuration
 CONFIG_FILE = "config.ini"  # should be a copy of template.ini with your settings
@@ -103,9 +103,6 @@ def load_config(config_file):
     parser = configparser.ConfigParser(interpolation=None)
     parser.read(config_path, encoding="utf-8")
 
-    if "captive_portal" not in parser:
-        colored_print(f"Error: 'captive_portal' section not found in {config_path}.", Colors.FAIL)
-        return None
     return parser["captive_portal"]
 
 def parse_sequence(sequence_text):
@@ -189,7 +186,7 @@ def load_credentials(credentials_file):
 
     return username, password
 
-def login_to_captive_portal(url, username, password, headless=True, sequence_text=""):
+def login_to_captive_portal(url, username, password, headless=True, sequence_text="", get_timeout=15):
     """
     Logs in to a captive portal.
 
@@ -214,10 +211,15 @@ def login_to_captive_portal(url, username, password, headless=True, sequence_tex
 
     # Initialize the Chrome driver
     driver = ChromeDriver(options=options)
+    driver.set_page_load_timeout(get_timeout)
 
     try:
         driver.get(url)
         colored_print(f"Navigated to: {url}", Colors.OKBLUE)  # Improved CLI output
+    except TimeoutException:
+        colored_print(f"Error: Timed out after {get_timeout}s while loading URL: {url}", Colors.FAIL)
+        driver.quit()
+        return False
     except WebDriverException as e:
         colored_print(f"Error: Failed to navigate to URL: {url} - {e}", Colors.FAIL)
         driver.quit()
@@ -259,6 +261,9 @@ def main():
     Main function to run the captive portal login script.
     """
     config = load_config(CONFIG_FILE)
+    if not config:
+        colored_print(f"Error: Failed to load configuration from {CONFIG_FILE}.", Colors.FAIL)
+        return
 
     credentials_file = config["credentials_file"]
     login_url = config["url"].strip()
@@ -266,6 +271,7 @@ def main():
     headless = config["headless"].lower() in ("1", "true", "yes", "on")
     retries = int(config["retries"])
     delay = int(config["delay"])
+    get_timeout = int(config.get("get_timeout", "15"))
     sequence_text = config.get("sequence", "").strip()
 
     global CHROME_PATH, CHROMEDRIVER_PATH
@@ -282,7 +288,7 @@ def main():
 
     for attempt in range(retries):
         colored_print(f"Attempt {attempt + 1} to login to captive portal at {login_url}", Colors.OKBLUE)
-        success = login_to_captive_portal(login_url, username, password, headless, sequence_text)
+        success = login_to_captive_portal(login_url, username, password, headless, sequence_text, get_timeout)
         if success:
             colored_print("Successfully logged in to the captive portal.", Colors.OKGREEN)
             return
