@@ -17,18 +17,12 @@ def login(driver, settings: Settings):
             log.info("No login sequence configured, using fallback flow.")
             run_fallback(driver, settings)
 
-        time.sleep(5)  # Wait for login to process
-
-        # Check for success by looking for the username field again
-        try:
-            driver.find_element(By.ID, "username")
-            log.warning("Login failed.")
-            return False
-        except NoSuchElementException:
-            log.info("Login successful.")
-            return True
-    except NoSuchElementException as e:
-        log.error(f"Could not find the selector element in the previous step.")
+        log.info("Sequence executed, waiting 15s to check connection status...")
+        time.sleep(15)  
+        driver.get("https://captive.apple.com")
+        return "captive.apple.com" in driver.current_url and "Success" in driver.page_source
+    except NoSuchElementException:
+        log.error("Could not find the selector element in the previous step.")
         return False
 
 def run_sequence(driver, sequence: list[dict[str, str]], settings: Settings) -> bool:
