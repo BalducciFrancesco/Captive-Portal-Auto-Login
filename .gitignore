@@ -1,5 +1,6 @@
 .vscode
-*.txt
-*.ini
-!template.ini
 __pycache__ 
+
+*.txt
+*.toml
+!template.toml

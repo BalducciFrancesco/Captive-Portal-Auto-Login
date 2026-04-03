@@ -8,7 +8,7 @@ This script uses a program called Selenium to automate the process of logging in
 
 ##   Configuration Files
 
-- Copy `template.ini` to a new `config.ini` file
+- Copy `template.toml` to a new `config.toml` file
 - Edit all values under the `[captive_portal]` section according to your requirements
 - Credentials should be stored in a file named `credentials.txt` in the same directory as the script, with the format:
   ```
