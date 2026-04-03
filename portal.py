@@ -1,7 +1,7 @@
 import time
 import logging as log
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException
 from settings import Settings
 
 
@@ -21,11 +21,15 @@ def login(driver, settings: Settings):
         time.sleep(15)  
         driver.get("https://captive.apple.com")
         return "captive.apple.com" in driver.current_url and "Success" in driver.page_source
-    except NoSuchElementException:
-        log.error("Could not find the selector element in the previous step.")
+    except NoSuchElementException as e1:
+        log.error(f"Could not find the selector element in the previous step: {e1.msg}")
+        return False
+    except ElementNotInteractableException as e2:
+        log.error(f"Could not interact with the selector element in the previous step: {e2.msg}")
         return False
 
-def run_sequence(driver, sequence: list[dict[str, str]], settings: Settings) -> bool:
+
+def run_sequence(driver, sequence: list[dict[str, str]], settings: Settings):
     """Runs the configured login sequence on the captive portal page."""
     for index, step in enumerate(sequence, start=1):
         action = step.get("action", "")
@@ -40,10 +44,7 @@ def run_sequence(driver, sequence: list[dict[str, str]], settings: Settings) -> 
         elif action == "fill-password":
             element.send_keys(settings.password)
 
-    return True
-
-
-def run_fallback(driver, settings: Settings) -> bool:
+def run_fallback(driver, settings: Settings):
     """Fallback login flow for simple portals with username/password fields and a submit button."""
     username_field = driver.find_element(By.ID, "username")
     password_field = driver.find_element(By.ID, "password")
@@ -53,6 +54,3 @@ def run_fallback(driver, settings: Settings) -> bool:
     password_field.send_keys(settings.password)
     submit_button.click()
     log.info("Entered credentials and submitted the form.")
-    return True
-
-

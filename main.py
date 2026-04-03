@@ -4,6 +4,7 @@ from pathlib import Path
 from browser import get_browser
 from portal import login
 from settings import Settings
+import time
 
 def setup_log():
     class ColorFormatter(log.Formatter):
@@ -32,6 +33,8 @@ if __name__ == "__main__":
 
     log.info("Initializing browser...")
     driver = get_browser(settings)
+    time.sleep(5)  # debugging
+
     if driver:
         try:
             log.info(f"Successfully connected through browser at starting page: {driver.current_url}")
@@ -41,6 +44,6 @@ if __name__ == "__main__":
             driver.quit()
 
     if success:
-        log.info("Successfully logged in.")
+        log.info("Auto Login successful. Enjoy your internet connection!")
     else:
-        log.error("Login failed.")
+        log.error("Auto Login failed. I tried my best but I couldn't get you connected. Hopefully there's the sun outside, go out and enjoy it anyway!")
