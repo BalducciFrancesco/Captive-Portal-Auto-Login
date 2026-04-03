@@ -64,9 +64,10 @@ Notes:
 
 import time
 import configparser
+import re
 from pathlib import Path
-from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 
@@ -99,13 +100,65 @@ def load_config(config_file):
     if not config_path.is_absolute():
         config_path = Path(__file__).resolve().parent / config_path
 
-    parser = configparser.ConfigParser()
+    parser = configparser.ConfigParser(interpolation=None)
     parser.read(config_path, encoding="utf-8")
 
     if "captive_portal" not in parser:
         colored_print(f"Error: 'captive_portal' section not found in {config_path}.", Colors.FAIL)
         return None
     return parser["captive_portal"]
+
+def parse_sequence(sequence_text):
+    steps = []
+    for raw_line in sequence_text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith(("#", ";")):
+            continue
+
+        match = re.match(r"^\[(?P<action>[a-z-]+)\]\s*(?P<selector>.+)$", line)
+        if not match:
+            raise ValueError(f"Invalid step: {line}")
+
+        action = match.group("action")
+        selector = match.group("selector").strip()
+        if not selector:
+            raise ValueError(f"Missing selector for step: {line}")
+
+        steps.append({"action": action, "selector": selector})
+
+    return steps
+
+def execute_sequence(driver, sequence_text, username, password):
+    for step in parse_sequence(sequence_text):
+        if step["action"] == "fill-username":
+            value = username
+        elif step["action"] == "fill-password":
+            value = password
+        else:
+            value = None
+
+        element = driver.find_element(By.CSS_SELECTOR, step["selector"])
+
+        if step["action"] == "click":
+            element.click()
+            continue
+
+        if step["action"] in ("fill-username", "fill-password"):
+            element.clear()
+            element.send_keys(value)
+            continue
+
+        raise ValueError(f"Unsupported action: {step['action']}")
+
+def login_succeeded(driver):
+    if "Success" in driver.title:
+        return True
+
+    try:
+        driver.find_element(By.ID, "username")
+        return False
+    except NoSuchElementException:
+        return True
 
 def load_credentials(credentials_file):
     credentials_path = Path(credentials_file)
@@ -136,7 +189,7 @@ def load_credentials(credentials_file):
 
     return username, password
 
-def login_to_captive_portal(url, username, password, headless=True):
+def login_to_captive_portal(url, username, password, headless=True, sequence_text=""):
     """
     Logs in to a captive portal.
 
@@ -160,7 +213,7 @@ def login_to_captive_portal(url, username, password, headless=True):
         options.binary_location = CHROME_PATH
 
     # Initialize the Chrome driver
-    driver = webdriver.Chrome(options=options)
+    driver = ChromeDriver(options=options)
 
     try:
         driver.get(url)
@@ -170,58 +223,31 @@ def login_to_captive_portal(url, username, password, headless=True):
         driver.quit()
         return False
 
-    # Locate the username and password input fields and the submit button
     try:
-        username_field = driver.find_element(By.ID, "username")
-        password_field = driver.find_element(By.ID, "password")
-        submit_button = driver.find_element(By.TAG_NAME, "button")  # or By.CSS_SELECTOR, etc.
-    except NoSuchElementException:
-        colored_print("Error: Could not find login form elements. Check the HTML of the captive portal page.", Colors.FAIL)
+        if sequence_text.strip():
+            execute_sequence(driver, sequence_text, username, password)
+            colored_print("Executed configured captive portal steps.", Colors.OKBLUE)
+        else:
+            username_field = driver.find_element(By.ID, "username")
+            password_field = driver.find_element(By.ID, "password")
+            submit_button = driver.find_element(By.TAG_NAME, "button")
+            username_field.send_keys(username)
+            password_field.send_keys(password)
+            submit_button.click()
+            colored_print("Entered credentials and submitted the form.", Colors.OKBLUE)
+    except (NoSuchElementException, ValueError) as e:
+        colored_print(f"Error: Could not complete login steps: {e}", Colors.FAIL)
         driver.quit()
         return False
-
-    # Enter the credentials and submit the form
-    username_field.send_keys(username)
-    password_field.send_keys(password)
-    submit_button.click()
-    colored_print("Entered credentials and submitted the form.", Colors.OKBLUE)  # Improved CLI output
 
     # Wait for a brief period to allow the login process to complete.  Adjust as necessary.
     time.sleep(5)
 
-    # Check for a successful login.  This is highly dependent on the specific captive portal.
-    # Look for an element that indicates successful login (e.g., a welcome message,
-    # a different page title, or the absence of the login form).
     try:
-        # Example 1: Check for a specific element on the page after login.
-        # success_element = driver.find_element(By.ID, "success-message")
-        # if success_element:
-        #    colored_print("Login successful (found success element).", Colors.OKGREEN)
-        #    driver.quit()
-        #    return True
-
-        # Example 2: Check if the page title has changed.
-        if "Success" in driver.title:
-            colored_print("Login successful (title changed).", Colors.OKGREEN)
-            driver.quit()
-            return True
-
-        # Example 3: Check if the login form is no longer present.
-        try:
-            driver.find_element(By.ID, "username")  # Try to find the username field.
-            colored_print("Login failed (login form still present).", Colors.FAIL)
-            driver.quit()
-            return False  # If it's found, login probably failed.
-        except NoSuchElementException:
-            colored_print("Login successful (login form not found).", Colors.OKGREEN)
-            driver.quit()
-            return True  # If it's not found, login might be successful
-
-        # If none of the above work, you'll need to inspect the captive portal's HTML
-        # and come up with a reliable way to determine if login was successful.
-        colored_print("Warning: Could not reliably determine login status.  Please check the script.", Colors.WARNING)
+        success = login_succeeded(driver)
+        colored_print("Login successful." if success else "Login failed.", Colors.OKGREEN if success else Colors.FAIL)
         driver.quit()
-        return False  # Return false, and log/check.
+        return success
 
     except Exception as e:
         colored_print(f"Error checking login status: {e}", Colors.FAIL)
@@ -240,6 +266,7 @@ def main():
     headless = config["headless"].lower() in ("1", "true", "yes", "on")
     retries = int(config["retries"])
     delay = int(config["delay"])
+    sequence_text = config.get("sequence", "").strip()
 
     global CHROME_PATH, CHROMEDRIVER_PATH
     CHROME_PATH = config["chrome_path"].strip()
@@ -255,7 +282,7 @@ def main():
 
     for attempt in range(retries):
         colored_print(f"Attempt {attempt + 1} to login to captive portal at {login_url}", Colors.OKBLUE)
-        success = login_to_captive_portal(login_url, username, password, headless)
+        success = login_to_captive_portal(login_url, username, password, headless, sequence_text)
         if success:
             colored_print("Successfully logged in to the captive portal.", Colors.OKGREEN)
             return
