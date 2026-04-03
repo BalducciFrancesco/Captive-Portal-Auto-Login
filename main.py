@@ -70,12 +70,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 
 # Configuration
-CREDENTIALS_FILE = "credentials.txt"  # line 1: username, line 2: password
-URL = ""  # Replace with the captive portal URL if known, otherwise, the script will try to detect it.
-FALLBACK_TRIGGER_URL = "http://neverssl.com"  # Used when URL is empty to trigger captive portal redirect
-HEADLESS = True  # Set to True to run Chrome in headless mode (recommended for servers)
-CHROME_PATH = "/usr/bin/google-chrome"  # Path to Chrome executable (usually auto-detected)
-CHROMEDRIVER_PATH = "/usr/bin/chromedriver"  # Path to the chromedriver
+CONFIG_FILE = "config.conf"
 
 # ANSI color codes for CLI output
 class Colors:
@@ -97,6 +92,29 @@ def colored_print(text, color=Colors.ENDC):
         color (str, optional): The color code to use. Defaults to Colors.ENDC (no color).
     """
     print(f"{color}{text}{Colors.ENDC}")
+
+def load_config(config_file):
+    config_path = Path(config_file)
+    if not config_path.is_absolute():
+        config_path = Path(__file__).resolve().parent / config_path
+
+    config = {}
+    try:
+        for raw_line in config_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip().lower()
+            value = value.strip()
+            config[key] = value
+    except Exception as e:
+        colored_print(f"Error: Could not read config file {config_path}: {e}", Colors.FAIL)
+        return None
+
+    return config
 
 def load_credentials(credentials_file):
     credentials_path = Path(credentials_file)
@@ -223,21 +241,32 @@ def main():
     """
     Main function to run the captive portal login script.
     """
-    retries = 3
-    delay = 5  # seconds
+    config = load_config(CONFIG_FILE)
+    if not config:
+        return
 
-    login_url = URL.strip() if URL else ""
+    credentials_file = config["credentials_file"]
+    login_url = config["url"].strip()
+    fallback_trigger_url = config["fallback_trigger_url"].strip()
+    headless = config["headless"].lower() in ("1", "true", "yes", "on")
+    retries = int(config["retries"])
+    delay = int(config["delay"])
+
+    global CHROME_PATH, CHROMEDRIVER_PATH
+    CHROME_PATH = config["chrome_path"].strip()
+    CHROMEDRIVER_PATH = config["chromedriver_path"].strip()
+
     if not login_url:
-        login_url = FALLBACK_TRIGGER_URL
+        login_url = fallback_trigger_url
         colored_print(f"URL not configured. Using fallback trigger URL: {login_url}", Colors.WARNING)
 
-    username, password = load_credentials(CREDENTIALS_FILE)
+    username, password = load_credentials(credentials_file)
     if not username or not password:
         return
 
     for attempt in range(retries):
         colored_print(f"Attempt {attempt + 1} to login to captive portal at {login_url}", Colors.OKBLUE)
-        success = login_to_captive_portal(login_url, username, password, HEADLESS)
+        success = login_to_captive_portal(login_url, username, password, headless)
         if success:
             colored_print("Successfully logged in to the captive portal.", Colors.OKGREEN)
             return
