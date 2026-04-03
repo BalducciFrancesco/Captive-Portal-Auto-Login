@@ -2,8 +2,8 @@
 url = ""
 fallback_trigger_url = "http://neverssl.com"
 headless = true
-browser_path = ""
-driver_path = ""
+browser_path = "/usr/bin/chrome"
+driver_path = "/usr/bin/chromedriver"
 retries = 3
 delay = 5
 get_timeout = 15
