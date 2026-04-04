@@ -25,25 +25,17 @@ def setup_log():
     handler.setFormatter(ColorFormatter("%(levelname)s: %(message)s"))
     log.basicConfig(level=log.INFO, handlers=[handler], force=True)
 
+setup_log()
+
+# -----
+# Load configuration
+# -----
+
+try:
+    settings = Settings.from_file("config/config.toml")
+except Exception as e:
+    log.error(f"Unable to load configuration. Reason: {e}")
+    sys.exit(1)
 
 if __name__ == "__main__":
-    setup_log()
-    settings = Settings.from_file("config/config.toml")
-    success = False
-
-    log.info("Initializing browser...")
-    driver = get_browser(settings)
-
-    if driver:
-        try:
-            log.info(f"Successfully connected through browser at starting page: {driver.current_url}")
-            log.info("Initializing login process...")
-            success = login(driver, settings)
-        finally:
-            time.sleep(5)  # debugging
-            driver.quit()
-
-    if success:
-        log.info("Auto Login successful. Enjoy your internet connection!")
-    else:
-        log.error("Auto Login failed. I tried my best but I couldn't get you connected. Hopefully there's the sun outside, go out and enjoy it anyway!")
+    pass
