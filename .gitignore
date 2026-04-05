@@ -5,3 +5,4 @@ driver
 *.txt
 *.toml
 !template.toml
+!requirements.txt
