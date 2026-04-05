@@ -43,7 +43,7 @@ def run_login_sequence(driver: ChromeDriver) -> ChromeDriver:
             if action == "click":
                 element.click()
             elif action == "fill-username":
-                element.send_keys(conf.username)
+                element.send_keys(conf.username) # type: ignore
             elif action == "fill-password":
                 element.send_keys(conf.password)
         except Exception as e:
