@@ -39,9 +39,19 @@ class Configuration:
 
         # Load credentials from separate file
         credentials_path = (config_path.parent / Path(str(login.get("credentials_file", "credentials.txt")).strip())).resolve()
-        username, password = credentials_path.read_text(encoding="utf-8").strip().splitlines()
-        if not username or not password:
-            raise ValueError(f"Username or Password is empty. Please check your credentials file referenced from file {config_file}. It has to contain the username in the first line and the password in the second line.")
+        credentials_lines = [line.strip() for line in credentials_path.read_text(encoding="utf-8").splitlines()]
+        if not credentials_lines:
+            raise ValueError(f"Password is empty. Please check your credentials file referenced from file {config_file}.")
+
+        if len(credentials_lines) == 1:
+            username = ""
+            password = credentials_lines[0]
+        else:
+            username = credentials_lines[0]
+            password = credentials_lines[1]
+
+        if not password:
+            raise ValueError(f"Password is empty. Please check your credentials file referenced from file {config_file}.")
 
         settings = cls(
             url=str(browser.get("url") or browser.get("fallback_trigger_url") or "").strip(),
@@ -62,13 +72,16 @@ class Configuration:
         for name, value in settings.__dict__.items():
             if value is None:
                 empty_fields.append(name)
-            elif isinstance(value, str) and not value:
+            elif name != "username" and isinstance(value, str) and not value:
                 empty_fields.append(name)
             elif isinstance(value, (list, dict, tuple, set)) and not value:
                 empty_fields.append(name)
 
         if empty_fields:
             raise ValueError(f"Missing/empty fields inside configuration file \"{config_file}\": [{', '.join(empty_fields)}]. Please check out \"config/config_template.toml\" for the correct format.")
+
+        if not settings.username and any(step.get("action") == "fill-username" for step in settings.sequence):
+            raise ValueError(f"Configuration uses a fill-username step, but the credentials file referenced from file {config_file} does not provide a username.")
 
         return settings
     
