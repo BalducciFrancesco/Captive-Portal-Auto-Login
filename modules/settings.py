@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import tomllib
 import logging as log
+from typing import Literal
 from tenacity import RetryCallState
 
 
@@ -14,8 +15,9 @@ from tenacity import RetryCallState
 class Configuration:
     url: str
     headless: bool
+    browser_kind: Literal["chrome", "firefox"]
     browser_path: str
-    driver_path: str
+    driver_path: str | None
     retry_attempts: int
     retry_delay: int
     retry_timeout: int
@@ -40,22 +42,17 @@ class Configuration:
         credentials_lines = [line.strip() for line in credentials_path.read_text(encoding="utf-8").splitlines()]
         if not credentials_lines:
             raise ValueError(f"Password is empty. Please check your credentials file referenced from file {config_file}.")
+        username, password = ((None, credentials_lines[0]) if len(credentials_lines) == 1 else credentials_lines[:2])
 
-        if len(credentials_lines) == 1:
-            username = None
-            password = credentials_lines[0]
-        else:
-            username = credentials_lines[0]
-            password = credentials_lines[1]
-
-        if not password:
-            raise ValueError(f"Password is empty. Please check your credentials file referenced from file {config_file}.")
+        browser_kind = browser_setup.get("chrome_path") and "chrome" or (browser_setup.get("firefox_path") and "firefox")
+        browser_path = browser_setup.get(f"{browser_kind}_path")
 
         settings = cls(
             url=str(browser_setup.get("captive_url") or browser_setup.get("fallback_trigger_url")).strip(),
             headless=bool(browser_setup["headless"]),
-            browser_path=str(browser_setup["browser_path"]).strip(),
-            driver_path=str(browser_setup["driver_path"]).strip(),
+            browser_kind=browser_kind,
+            browser_path=browser_path.strip(),
+            driver_path=(str(browser_setup.get("driver_path", "")).strip() or None),
             retry_attempts=int(retry["attempts"]),
             retry_delay=int(retry["delay"]),
             retry_timeout=int(retry["timeout"]),
@@ -68,6 +65,8 @@ class Configuration:
         empty_fields = []
         for name, value in settings.__dict__.items():
             if value is None:
+                if name in {"driver_path"}:
+                    continue
                 empty_fields.append(name)
             elif name != "username" and isinstance(value, str) and not value:
                 empty_fields.append(name)
