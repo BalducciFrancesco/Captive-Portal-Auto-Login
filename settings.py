@@ -1,11 +1,19 @@
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 import tomllib
 import logging as log
+import logging as log
+import sys
+from tenacity import RetryCallState
 
+
+# -----
+# Configuration setup
+# -----
 
 @dataclass(frozen=True)
-class Settings:
+class Configuration:
     url: str
     headless: bool
     browser_path: str
@@ -77,3 +85,55 @@ class Settings:
                 str += f"\n\t{key}: {value},"
         str += ")"
         return str
+
+try: # Served globally
+    conf = Configuration.from_file("config/config.toml")
+except Exception as e:
+    log.error(f"Unable to load configuration. Reason: {e}")
+    sys.exit(1)
+
+# -----
+# Logging setup
+# -----
+
+def setup_log():
+    class ColorFormatter(log.Formatter):
+        COLORS = {
+            log.DEBUG: "\033[36m",
+            log.INFO: "\033[94m",
+            log.WARNING: "\033[93m",
+            log.ERROR: "\033[91m",
+            log.CRITICAL: "\033[95m",
+        }
+        RESET = "\033[0m"
+
+        def format(self, record):
+            color = self.COLORS.get(record.levelno, self.RESET)
+            base = super().format(record)
+            return f"{color}{base}{self.RESET}"
+    handler = log.StreamHandler(sys.stdout)
+    handler.setFormatter(ColorFormatter("%(levelname)s: %(message)s"))
+    log.basicConfig(level=log.INFO, handlers=[handler], force=True)
+
+
+# -----
+# Retry setup
+# -----
+
+def log_attempt(retry_state: RetryCallState):
+    log.info(f"Attempt {retry_state.attempt_number} out of {conf.retries}...")
+
+
+def before_sleep(message: str):
+    def _inner(retry_state: RetryCallState):
+        reason = retry_state.outcome.exception() if retry_state.outcome else "unknown"
+        log.warning(f"{message}. Reason: {reason}")
+        log.info(f"Retrying in {conf.delay}s...")
+    return _inner
+
+def give_up(message: str):
+    def _inner(retry_state: RetryCallState):
+        reason = retry_state.outcome.exception() if retry_state.outcome else "unknown"
+        log.error(f"{message}. Reason: {reason}")
+        sys.exit(1)
+    return _inner
