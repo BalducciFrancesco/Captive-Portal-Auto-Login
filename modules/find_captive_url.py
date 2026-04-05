@@ -1,7 +1,7 @@
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
-from settings import before_sleep, give_up, log_attempt
-from settings import conf
+from modules.settings import before_sleep, give_up, log_attempt
+from modules.settings import conf
 
 @retry(
     stop=stop_after_attempt(conf.retries),

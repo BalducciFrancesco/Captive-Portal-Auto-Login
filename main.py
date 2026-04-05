@@ -1,11 +1,11 @@
 import logging as log
 import sys
 import time
-from check_connection import check_connection
-from find_captive_url import get_captive_url
-from init_browser import init_browser
-from run_login_sequence import run_login_sequence
-from settings import setup_log
+from modules.check_connection import check_connection
+from modules.find_captive_url import get_captive_url
+from modules.init_browser import init_browser
+from modules.run_login_sequence import run_login_sequence
+from modules.settings import setup_log
 
 def main():
     # %%
@@ -14,7 +14,7 @@ def main():
     # %%
     log.info(f"----\nStep (1/4): Initializing loading of configuration file...")
     
-    from settings import conf
+    from modules.settings import conf
     
     log.info(f"Successfully loaded configuration file. {conf}")
 

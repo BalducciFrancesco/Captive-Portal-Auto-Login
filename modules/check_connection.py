@@ -1,5 +1,5 @@
 import requests
-from settings import conf
+from modules.settings import conf
 
 
 def check_connection() -> bool:
