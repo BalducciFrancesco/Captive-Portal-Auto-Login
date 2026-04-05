@@ -1,0 +1,20 @@
+[browser]
+url = ""
+fallback_trigger_url = "http://neverssl.com"
+headless = true
+browser_path = "/usr/bin/chrome"
+driver_path = "/usr/bin/chromedriver"
+retries = 3
+delay = 5
+get_timeout = 15
+
+[login]
+credentials_file = "./credentials.txt"
+step_delay = 0.4
+captive_sequence = [
+  { action = "click", selector = "a" },
+  { action = "click", selector = "#cp-modal-button-member-simple" },
+  { action = "fill-username", selector = "input:nth-of-type(1)" },
+  { action = "fill-password", selector = "input:nth-of-type(2)" },
+  { action = "click", selector = "button[type=\"submit\"]" },
+]
