@@ -47,8 +47,7 @@ except Exception as e:
     log.error(f"Unable to load configuration. Reason: {e}")
     sys.exit(1)
 
-log.info(f"Successfully loaded configuration file.")
-log.info(f"Starting URL: {settings.url}, Headless: {settings.headless}, Retries: {settings.retries}, Delay: {settings.delay}s, Step Delay: {settings.step_delay}s, Sequence Steps: {len(settings.sequence)}")
+log.info(f"Successfully loaded configuration file. {settings}")
 
 # -----
 # Identify captive portal URL
@@ -105,6 +104,7 @@ for attempt in range(settings.retries):
         driver = ChromeDriver(service=service, options=options)
         driver.set_page_load_timeout(settings.get_timeout)
         driver.get(captive_url) # type: ignore
+        break
     except Exception as e:
         log.warning(f"Failed attempt to initialize browser and navigate to captive URL {captive_url}. Retrying in {settings.delay}s... Reason: {e}")
         time.sleep(settings.delay)
@@ -157,7 +157,9 @@ for attempt in range(settings.retries):
             time.sleep(settings.delay)
             continue
 
-
+    # All actions executed
+    break
+    
 log.info(f"Successfully executed the login sequence on the captive portal. Waiting 15s to check connection status...")
 time.sleep(15)
 
