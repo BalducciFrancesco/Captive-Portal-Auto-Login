@@ -64,7 +64,8 @@ for attempt in range(settings.retries):
             captive_url = response.headers['Location']
             break
     except Exception as e:
-        log.warning(f"Failed attempt to get captive URL from trigger URL {settings.url}. Retrying in {settings.delay}s... Reason: {e}")
+        log.warning(f"Failed attempt to get captive URL from trigger URL {settings.url}. Reason: {e}")
+        log.info(f"Retrying in {settings.delay}s...")
         time.sleep(settings.delay)
         continue
 
@@ -106,7 +107,8 @@ for attempt in range(settings.retries):
         driver.get(captive_url) # type: ignore
         break
     except Exception as e:
-        log.warning(f"Failed attempt to initialize browser and navigate to captive URL {captive_url}. Retrying in {settings.delay}s... Reason: {e}")
+        log.warning(f"Failed attempt to initialize browser and navigate to captive URL {captive_url}. Reason: {e}")
+        log.info(f"Retrying in {settings.delay}s...")
         time.sleep(settings.delay)
         continue
 
@@ -129,19 +131,21 @@ for attempt in range(settings.retries):
     for index, step in enumerate(settings.sequence, start=1):
         action = step.get("action", "")
         selector = step.get("selector", "")
-        log.info(f"Executing sequence step #{index} out of {len(settings.sequence)}: '{action}' on selector '{selector}'")
+        log.info(f"Executing sequence step {index} out of {len(settings.sequence)}: '{action}' on selector '{selector}'")
 
         try: # Wait for DOM ready state
             WebDriverWait(driver, settings.get_timeout).until(lambda d: d.execute_script("return document.readyState") == "complete")   # type: ignore
         except TimeoutException:
-            log.warning(f"Document was not ready within the timeout of {settings.get_timeout}s for step #{index}. Retrying the whole sequence from the start in {settings.delay}s...")
+            log.warning(f"Document was not ready within the timeout of {settings.get_timeout}s for step #{index}. Reason: {e}")
+            log.info(f"Retrying the whole sequence from the start in {settings.delay}s...")
             time.sleep(settings.delay)
             continue
 
         try: # Attempt locating the element
             element = driver.find_element(By.CSS_SELECTOR, selector) # type: ignore
         except Exception as e:
-            log.warning(f"Failed to find element for step #{index} with selector '{selector}'. Retrying the whole sequence from the start in {settings.delay}s... Reason: {e}")
+            log.warning(f"Failed to find element for step #{index} with selector '{selector}'. Reason: {e}")
+            log.info(f"Retrying the whole sequence from the start in {settings.delay}s...")
             time.sleep(settings.delay)
             continue
         
@@ -153,7 +157,8 @@ for attempt in range(settings.retries):
             elif action == "fill-password":
                 element.send_keys(settings.password)
         except Exception as e:
-            log.warning(f"Failed to perform action '{action}' on element for step #{index}. Retrying the whole sequence from the start in {settings.delay}s... Reason: {e}")
+            log.warning(f"Failed to perform action '{action}' on element for step #{index}. Reason: {e}")
+            log.info(f"Retrying the whole sequence from the start in {settings.delay}s...")
             time.sleep(settings.delay)
             continue
 
