@@ -13,24 +13,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 @retry(
-    stop=stop_after_attempt(conf.retries),
-    wait=wait_fixed(conf.delay),
+    stop=stop_after_attempt(conf.retry_attempts),
+    wait=wait_fixed(conf.retry_delay),
     reraise=True,
     before=log_attempt,
     before_sleep=before_sleep(f"Failed attempt to initialize browser and navigate to captive URL."),
     retry_error_callback=give_up(f"Unable to initialize browser and navigate to captive URL. Please check your browser and driver paths in the configuration file, as well as your network connection.")
 )
 def run_login_sequence(driver: ChromeDriver) -> ChromeDriver:
-    for index, step in enumerate(conf.sequence, start=1):
+    for index, step in enumerate(conf.login_sequence, start=1):
         action = step.get("action", "")
         selector = step.get("selector", "")
-        log.info(f"Executing sequence step {index} out of {len(conf.sequence)}: '{action}' on selector '{selector}'")
+        log.info(f"Executing sequence step {index} out of {len(conf.login_sequence)}: '{action}' on selector '{selector}'")
 
         # Wait for the document to be ready before interacting with elements
         try:
-            WebDriverWait(driver, conf.get_timeout).until(lambda d: d.execute_script("return document.readyState") == "complete")
+            WebDriverWait(driver, conf.retry_timeout).until(lambda d: d.execute_script("return document.readyState") == "complete")
         except TimeoutException as e:
-            raise RuntimeError(f"Document was not ready within the timeout of {conf.get_timeout}s for step #{index}") from e
+            raise RuntimeError(f"Document was not ready within the timeout of {conf.retry_timeout}s for step #{index}") from e
 
         # Find the element to interact with
         try:

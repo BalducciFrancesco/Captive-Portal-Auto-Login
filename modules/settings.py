@@ -3,8 +3,6 @@ from pathlib import Path
 import sys
 import tomllib
 import logging as log
-import logging as log
-import sys
 from tenacity import RetryCallState
 
 
@@ -18,12 +16,11 @@ class Configuration:
     headless: bool
     browser_path: str
     driver_path: str
-    retries: int
-    delay: int
-    get_timeout: int
-    step_delay: float
-    sequence: list[dict[str, str]]
-    username: str
+    retry_attempts: int
+    retry_delay: int
+    retry_timeout: int
+    login_sequence: list[dict[str, str]]
+    username: str | None
     password: str
 
     @classmethod
@@ -34,7 +31,8 @@ class Configuration:
             cfg = tomllib.load(f)
 
         # Main sections
-        browser = cfg["browser"]
+        browser_setup = cfg["browser_setup"]
+        retry = cfg["retry"]
         login = cfg["login"]
 
         # Load credentials from separate file
@@ -44,7 +42,7 @@ class Configuration:
             raise ValueError(f"Password is empty. Please check your credentials file referenced from file {config_file}.")
 
         if len(credentials_lines) == 1:
-            username = ""
+            username = None
             password = credentials_lines[0]
         else:
             username = credentials_lines[0]
@@ -54,16 +52,15 @@ class Configuration:
             raise ValueError(f"Password is empty. Please check your credentials file referenced from file {config_file}.")
 
         settings = cls(
-            url=str(browser.get("url") or browser.get("fallback_trigger_url") or "").strip(),
-            headless=bool(browser["headless"]),
-            browser_path=str(browser["browser_path"]).strip(),
-            driver_path=str(browser["driver_path"]).strip(),
-            retries=int(browser["retries"]),
-            delay=int(browser["delay"]),
-            get_timeout=int(browser["get_timeout"]),
-            step_delay=float(login["step_delay"]),
-            sequence=list(login["captive_sequence"]),
-            username=username.strip(),
+            url=str(browser_setup.get("captive_url") or browser_setup.get("fallback_trigger_url")).strip(),
+            headless=bool(browser_setup["headless"]),
+            browser_path=str(browser_setup["browser_path"]).strip(),
+            driver_path=str(browser_setup["driver_path"]).strip(),
+            retry_attempts=int(retry["attempts"]),
+            retry_delay=int(retry["delay"]),
+            retry_timeout=int(retry["timeout"]),
+            login_sequence=list(login["sequence"]),
+            username=username.strip() if username else None,
             password=password.strip(),
         )
 
@@ -76,11 +73,9 @@ class Configuration:
                 empty_fields.append(name)
             elif isinstance(value, (list, dict, tuple, set)) and not value:
                 empty_fields.append(name)
-
         if empty_fields:
             raise ValueError(f"Missing/empty fields inside configuration file \"{config_file}\": [{', '.join(empty_fields)}]. Please check out \"config/config_template.toml\" for the correct format.")
-
-        if not settings.username and any(step.get("action") == "fill-username" for step in settings.sequence):
+        if not settings.username and any(step.get("action") == "fill-username" for step in settings.login_sequence):
             raise ValueError(f"Configuration uses a fill-username step, but the credentials file referenced from file {config_file} does not provide a username.")
 
         return settings
@@ -88,7 +83,7 @@ class Configuration:
     def __repr__(self):
         str = "Settings: ("
         for key, value in self.__dict__.items():
-            if key == "sequence":
+            if key == "login_sequence":
                 str += f"\n\t{key}:"
                 for seq in value:
                     str += f"\n\t\t{seq},"
@@ -134,14 +129,14 @@ def setup_log():
 # -----
 
 def log_attempt(retry_state: RetryCallState):
-    log.info(f"Attempt {retry_state.attempt_number} out of {conf.retries}...")
+    log.info(f"Attempt {retry_state.attempt_number} out of {conf.retry_attempts}...")
 
 
 def before_sleep(message: str):
     def _inner(retry_state: RetryCallState):
         reason = retry_state.outcome.exception() if retry_state.outcome else "unknown"
         log.warning(f"{message}. Reason: {reason}")
-        log.info(f"Retrying in {conf.delay}s...")
+        log.info(f"Retrying in {conf.retry_delay}s...")
     return _inner
 
 def give_up(message: str):

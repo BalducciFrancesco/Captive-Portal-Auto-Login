@@ -8,8 +8,8 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 @retry(
-    stop=stop_after_attempt(conf.retries),
-    wait=wait_fixed(conf.delay),
+    stop=stop_after_attempt(conf.retry_attempts),
+    wait=wait_fixed(conf.retry_delay),
     reraise=True,
     before=log_attempt,
     before_sleep=before_sleep(f"Failed attempt to initialize browser and navigate to captive URL."),
@@ -32,6 +32,6 @@ def init_browser(captive_url: str) -> ChromeDriver:
         options.add_argument("--disable-dev-shm-usage")
 
     driver = ChromeDriver(service=service, options=options)
-    driver.set_page_load_timeout(conf.get_timeout)
+    driver.set_page_load_timeout(conf.retry_timeout)
     driver.get(captive_url)
     return driver
