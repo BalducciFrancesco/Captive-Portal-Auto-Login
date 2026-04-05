@@ -1,10 +1,18 @@
 import logging as log
 import sys
-from pathlib import Path
-from browser import get_browser
-from portal import login
 from settings import Settings
+import requests
 import time
+import logging as log
+import time
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
+from settings import Settings
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+import requests
 
 def setup_log():
     class ColorFormatter(log.Formatter):
@@ -25,25 +33,161 @@ def setup_log():
     handler.setFormatter(ColorFormatter("%(levelname)s: %(message)s"))
     log.basicConfig(level=log.INFO, handlers=[handler], force=True)
 
+setup_log()
+
+# -----
+# Load configuration
+# -----
+
+log.info(f"----\nStep (1/4): Initializing loading of configuration file...")
+
+try:
+    settings = Settings.from_file("config/config.toml")
+except Exception as e:
+    log.error(f"Unable to load configuration. Reason: {e}")
+    sys.exit(1)
+
+log.info(f"Successfully loaded configuration file. {settings}")
+
+# -----
+# Identify captive portal URL
+# -----
+
+log.info(f"\n----\nStep (2/4): Identifying captive portal URL ...")
+
+captive_url = None
+for attempt in range(settings.retries):
+    log.info(f"Attempt {attempt + 1} out of {settings.retries}...")
+    try:
+        response = requests.get(settings.url, allow_redirects=False, timeout=settings.get_timeout)
+        if 'Location' in response.headers:
+            captive_url = response.headers['Location']
+            break
+    except Exception as e:
+        log.warning(f"Failed attempt to get captive URL from trigger URL {settings.url}. Reason: {e}")
+        log.info(f"Retrying in {settings.delay}s...")
+        time.sleep(settings.delay)
+        continue
+
+if(attempt == settings.retries - 1 and not captive_url):
+    log.error(f"Unable to obtain captive URL after {settings.retries} attempts. Please check your network connection and the trigger URL in your configuration file.")
+    sys.exit(1)
+
+log.info(f"Successfully obtained captive URL.")
+log.info(f"Captive URL: {captive_url}")
+
+# -----
+# Initialize browser and attach to portal URL
+# -----
+
+log.info(f"\n----\nStep (3/4): Initializing browser and attaching to captive portal URL...")
+
+driver = None
+for attempt in range(settings.retries):
+    log.info(f"Attempt {attempt + 1} out of {settings.retries}...")
+
+    options = Options()
+    options.binary_location = settings.browser_path
+    options.add_argument("--disable-chrome-captive-portal-detector")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--ignore-ssl-errors=yes")
+    options.add_argument("--allow-running-insecure-content")
+    options.set_capability("acceptInsecureCerts", True)
+    service = Service(executable_path=settings.driver_path)
+
+    if settings.headless:
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
+    try:
+        driver = ChromeDriver(service=service, options=options)
+        driver.set_page_load_timeout(settings.get_timeout)
+        driver.get(captive_url) # type: ignore
+        break
+    except Exception as e:
+        log.warning(f"Failed attempt to initialize browser and navigate to captive URL {captive_url}. Reason: {e}")
+        log.info(f"Retrying in {settings.delay}s...")
+        time.sleep(settings.delay)
+        continue
+
+if(attempt == settings.retries - 1 and not driver):
+    log.error(f"Unable to initialize browser and navigate to captive URL after {settings.retries} attempts. Please check your browser and driver paths in the configuration file, as well as your network connection.")
+    sys.exit(1)
+
+log.info(f"Successfully initialized browser at captive portal URL.")
+log.info(f"Current URL in browser: {driver.current_url}") # type: ignore
+
+# -----
+# Interactively navigate the captive portal and perform login
+# -----
+
+log.info(f"\n----\nStep (4/4): Performing login sequence on captive portal...")
+
+for attempt in range(settings.retries):
+    log.info(f"Attempt {attempt + 1} out of {settings.retries}...")
+
+    for index, step in enumerate(settings.sequence, start=1):
+        action = step.get("action", "")
+        selector = step.get("selector", "")
+        log.info(f"Executing sequence step {index} out of {len(settings.sequence)}: '{action}' on selector '{selector}'")
+
+        try: # Wait for DOM ready state
+            WebDriverWait(driver, settings.get_timeout).until(lambda d: d.execute_script("return document.readyState") == "complete")   # type: ignore
+        except TimeoutException:
+            log.warning(f"Document was not ready within the timeout of {settings.get_timeout}s for step #{index}. Reason: {e}")
+            log.info(f"Retrying the whole sequence from the start in {settings.delay}s...")
+            time.sleep(settings.delay)
+            continue
+
+        try: # Attempt locating the element
+            element = driver.find_element(By.CSS_SELECTOR, selector) # type: ignore
+        except Exception as e:
+            log.warning(f"Failed to find element for step #{index} with selector '{selector}'. Reason: {e}")
+            log.info(f"Retrying the whole sequence from the start in {settings.delay}s...")
+            time.sleep(settings.delay)
+            continue
+        
+        try: # Perform the specified action on the element
+            if action == "click":
+                element.click()
+            elif action == "fill-username":
+                element.send_keys(settings.username)
+            elif action == "fill-password":
+                element.send_keys(settings.password)
+        except Exception as e:
+            log.warning(f"Failed to perform action '{action}' on element for step #{index}. Reason: {e}")
+            log.info(f"Retrying the whole sequence from the start in {settings.delay}s...")
+            time.sleep(settings.delay)
+            continue
+
+    # All actions executed
+    break
+    
+log.info(f"Successfully executed the login sequence on the captive portal. Waiting 15s to check connection status...")
+time.sleep(15)
+
+# -----
+# Check final connection 
+# -----
+
+try:
+    response = requests.get("https://google.com", allow_redirects=False, timeout=settings.get_timeout)
+    if response.status_code == 200:
+        # Success
+        log.info(f"Successfully logged in and bypassed the captive portal! Connection is now open. Have fun bro!")
+        sys.exit(0)
+except Exception as e:
+    pass
+
+# Failed final connection
+log.error(f"Unable to reach the internet after executing the login sequence. The captive portal is still blocking the connection.")
+log.error(f"I'm sorry but I tried my best. Hopefully there's still the sun and some fresh air outside.")
+log.error(f"Please check your configuration retry later, or at least that's what we say in these cases")
+sys.exit(1)
+
+# -----
 
 if __name__ == "__main__":
-    setup_log()
-    settings = Settings.from_file("config/config.toml")
-    success = False
-
-    log.info("Initializing browser...")
-    driver = get_browser(settings)
-
-    if driver:
-        try:
-            log.info(f"Successfully connected through browser at starting page: {driver.current_url}")
-            log.info("Initializing login process...")
-            success = login(driver, settings)
-        finally:
-            time.sleep(5)  # debugging
-            driver.quit()
-
-    if success:
-        log.info("Auto Login successful. Enjoy your internet connection!")
-    else:
-        log.error("Auto Login failed. I tried my best but I couldn't get you connected. Hopefully there's the sun outside, go out and enjoy it anyway!")
+    pass
