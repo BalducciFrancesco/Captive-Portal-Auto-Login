@@ -1,12 +1,9 @@
-from tenacity import retry, stop_after_attempt, wait_fixed
-from modules.settings import before_sleep, give_up, log_attempt
-from modules.settings import conf
-from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
-from tenacity import retry, stop_after_attempt, wait_fixed
 import logging as log
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
+from selenium.webdriver.remote.webdriver import WebDriver
 from tenacity import retry, stop_after_attempt, wait_fixed
+
+from modules.settings import before_sleep, conf, give_up, log_attempt
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -20,7 +17,7 @@ from selenium.webdriver.support.ui import WebDriverWait
     before_sleep=before_sleep(f"Failed attempt to initialize browser and navigate to captive URL."),
     retry_error_callback=give_up(f"Unable to initialize browser and navigate to captive URL. Please check your browser and driver paths in the configuration file, as well as your network connection.")
 )
-def run_login_sequence(driver: ChromeDriver) -> ChromeDriver:
+def run_login_sequence(driver: WebDriver) -> WebDriver:
     for index, step in enumerate(conf.login_sequence, start=1):
         action = step.get("action", "")
         selector = step.get("selector", "")

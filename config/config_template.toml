@@ -8,8 +8,9 @@
 captive_url = ""                              # (Optional) URL of the captive portal's login page
 fallback_trigger_url = "http://neverssl.com"  # URL to trigger captive portal redirection if captive_url is not set or fails
 headless = true                               # Whether to run the browser in headless mode (no GUI)
-browser_path = "/usr/bin/chrome"              # Path to the chosen browser executable
-driver_path =  "/usr/bin/chromedriver"        # Path to the corresponding WebDriver executable
+chrome_path = "/usr/bin/chrome"               # Use this for Chrome or Chromium
+# firefox_path = "/Applications/Firefox.app/Contents/MacOS/firefox"  # Use this instead for Firefox
+driver_path = "/usr/bin/chromedriver"         # (Optional) path to the corresponding WebDriver executable; omit it to let Selenium resolve/download the matching one at runtime
 
 [retry]
 attempts = 3
