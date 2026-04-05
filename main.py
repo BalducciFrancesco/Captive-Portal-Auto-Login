@@ -167,17 +167,18 @@ time.sleep(15)
 # Check final connection 
 # -----
 
-response = requests.get("example.com", allow_redirects=False, timeout=settings.get_timeout)
+try:
+    response = requests.get("https://google.com", allow_redirects=False, timeout=settings.get_timeout)
+    if response.status_code == 200:
+        log.info(f"Successfully logged in and bypassed the captive portal! Connection is now open. Have fun bro!")
+        sys.exit(0)
+except Exception as e:
+    pass
 
-if response.status_code == 200:
-    log.error(f"Unable to reach the internet after executing the login sequence. \
-                The captive portal is still blocking the connection. \
-                I'm sorry but I tried my best. Hopefully there's still the sun and some fresh air outside. \
-                Please check your configuration retry later, or at least that's what we say in these cases")
-    sys.exit(1)
-
-log.info(f"Successfully logged in and bypassed the captive portal! Connection is now open. Have fun bro!")
-sys.exit(0)
+log.error(f"Unable to reach the internet after executing the login sequence. The captive portal is still blocking the connection. \
+            I'm sorry but I tried my best. Hopefully there's still the sun and some fresh air outside. \
+            Please check your configuration retry later, or at least that's what we say in these cases")
+sys.exit(1)
 
 # -----
 
