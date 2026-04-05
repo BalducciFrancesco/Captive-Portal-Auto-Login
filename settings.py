@@ -63,3 +63,17 @@ class Settings:
             raise ValueError(f"Missing/empty fields inside configuration file \"{config_file}\": [{', '.join(empty_fields)}]. Please check out \"config/config_template.toml\" for the correct format.")
 
         return settings
+    
+    def __repr__(self):
+        str = "Settings: ("
+        for key, value in self.__dict__.items():
+            if key == "sequence":
+                str += f"\n\t{key}:"
+                for seq in value:
+                    str += f"\n\t\t{seq},"
+            elif key == "password":
+                str += f"\n\t{key}: {'***'},"
+            else: 
+                str += f"\n\t{key}: {value},"
+        str += ")"
+        return str

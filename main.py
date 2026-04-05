@@ -39,7 +39,7 @@ setup_log()
 # Load configuration
 # -----
 
-log.info(f"\n ---- \n Step (1/4): Initializing loading of configuration file...")
+log.info(f"----\nStep (1/4): Initializing loading of configuration file...")
 
 try:
     settings = Settings.from_file("config/config.toml")
@@ -47,13 +47,14 @@ except Exception as e:
     log.error(f"Unable to load configuration. Reason: {e}")
     sys.exit(1)
 
-log.info(f"Successfully loaded configuration file. Starting URL: {settings.url}, Headless: {settings.headless}, Retries: {settings.retries}, Delay: {settings.delay}s, Step Delay: {settings.step_delay}s, Sequence Steps: {len(settings.sequence)}")
+log.info(f"Successfully loaded configuration file.")
+log.info(f"Starting URL: {settings.url}, Headless: {settings.headless}, Retries: {settings.retries}, Delay: {settings.delay}s, Step Delay: {settings.step_delay}s, Sequence Steps: {len(settings.sequence)}")
 
 # -----
 # Identify captive portal URL
 # -----
 
-log.info(f"\n ---- \n Step (2/4): Identifying captive portal URL ...")
+log.info(f"\n----\nStep (2/4): Identifying captive portal URL ...")
 
 captive_url = None
 for attempt in range(settings.retries):
@@ -72,13 +73,14 @@ if(attempt == settings.retries - 1 and not captive_url):
     log.error(f"Unable to obtain captive URL after {settings.retries} attempts. Please check your network connection and the trigger URL in your configuration file.")
     sys.exit(1)
 
-log.info(f"Successfully obtained captive URL: {captive_url}")
+log.info(f"Successfully obtained captive URL.")
+log.info(f"Captive URL: {captive_url}")
 
 # -----
 # Initialize browser and attach to portal URL
 # -----
 
-log.info(f"\n ---- \n Step (3/4): Initializing browser and attaching to captive portal URL...")
+log.info(f"\n----\nStep (3/4): Initializing browser and attaching to captive portal URL...")
 
 driver = None
 for attempt in range(settings.retries):
@@ -112,13 +114,14 @@ if(attempt == settings.retries - 1 and not driver):
     log.error(f"Unable to initialize browser and navigate to captive URL after {settings.retries} attempts. Please check your browser and driver paths in the configuration file, as well as your network connection.")
     sys.exit(1)
 
-log.info(f"Successfully initialized browser at captive portal URL: {driver.current_url}") # type: ignore
+log.info(f"Successfully initialized browser at captive portal URL.")
+log.info(f"Current URL in browser: {driver.current_url}") # type: ignore
 
 # -----
 # Interactively navigate the captive portal and perform login
 # -----
 
-log.info(f"\n ---- \n Step (4/4): Performing login sequence on captive portal...")
+log.info(f"\n----\nStep (4/4): Performing login sequence on captive portal...")
 
 for attempt in range(settings.retries):
     log.info(f"Attempt {attempt + 1} out of {settings.retries}...")
