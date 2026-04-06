@@ -52,13 +52,19 @@ Create a plain-text file with your credentials (path is set in `config.toml`, de
 
 ### 3. Install the WebDriver (optional)
 
-If you don't already have a matching WebDriver on your system, run the installer script:
+If you don't already have a matching WebDriver on your system, run the autoinstaller:
 
 ```bash
-python install-driver.py
+pip install chromedriver-autoinstaller && python -c "import chromedriver_autoinstaller; print(chromedriver_autoinstaller.install())" 
 ```
 
-This reads your `config/config.toml` and automatically downloads and places the correct chromedriver or geckodriver inside the `driver/` directory.
+or
+
+```bash
+pip install geckodriver-autoinstaller && python -c "import geckodriver_autoinstaller; print(geckodriver_autoinstaller.install())"
+```
+
+This will download the correct WebDriver binary for your installed browser version and print the path to it. You can then set `driver_path` in your `config.toml` to that path.
 
 Alternatively, you can set `driver_path` to an existing binary in your config, or omit it entirely to let Selenium resolve/download it at runtime.
 
