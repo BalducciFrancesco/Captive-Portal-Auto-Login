@@ -38,7 +38,7 @@ pip install selenium
 
 ```bash
 mkdir -p ~/bin
-wget -O ~/bin/captive-login.sh https://github.com/BalducciFrancesco/Captive-Portal-Auto-Login/shell-version/captive-login.sh
+wget -O ~/bin/captive-login.sh https://raw.githubusercontent.com/BalducciFrancesco/Captive-Portal-Auto-Login/shell-version/captive-login.sh
 ```
 
 ### Step 3: Configure the script
