@@ -2,6 +2,8 @@
 
 A Python tool that automatically detects and logs into captive portals (e.g. hotel Wi-Fi, airport Wi-Fi, university networks) using a configurable browser automation sequence powered by [Selenium](https://www.selenium.dev/).
 
+> A more stable and shell-friendly alternative has been developed in the branch [shell-version](./shell-version). Make sure to check it out!
+
 ## Features
 
 - Supports **Chrome/Chromium** and **Firefox**
