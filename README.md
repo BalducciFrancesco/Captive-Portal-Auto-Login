@@ -59,7 +59,7 @@ LOGIN_SEQUENCE=(...)                    # Your specific steps for the captive po
 ```bash
 HOTSPOT_SSID="Pi-Hotspot"               # Fallback hotspot name
 HOTSPOT_PASSWORD="raspberry"            # Fallback hotspot password
-WLAN_DEVICE="wlan0"                     # WiFi interface name
+WLAN_DEVICE="wlan1"                     # WiFi interface name
 
 RETRY_ATTEMPTS=3                         # Attempts before hotspot fallback
 RETRY_DELAY=5                            # Delay between retries (seconds)

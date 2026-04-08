@@ -10,7 +10,7 @@ set -e
 WIFI_SSID="YOUR_WIFI_SSID"                   # Your target WiFi network
 HOTSPOT_SSID="Pi-Hotspot"                     # Fallback hotspot name
 HOTSPOT_PASSWORD="raspberry"                  # Fallback hotspot password
-WLAN_DEVICE="wlan0"                           # WiFi interface name
+WLAN_DEVICE="wlan1"                           # WiFi interface name
 
 # Retry & Timing
 RETRY_ATTEMPTS=3                              # Attempts before hotspot fallback
