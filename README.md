@@ -10,7 +10,7 @@ Simple, fast bash script that automatically logs into captive portals (airport W
 - [x] Automatically detects captive portal via `neverssl.com` redirect
 - [x] Automatically uses Firefox through Selenium (click, fill forms, submit)
 - [x] Retry logic (3 attempts, 5s delay between retries)
-- [x] Falls back to hotspot creation if login fails
+- [x] Automatic hotspot fallback if login fails after retries (optional)
 - [x] Auto-runs at startup (if systemd service installed)
 
 ## How to find portal login selectors
@@ -59,14 +59,16 @@ LOGIN_SEQUENCE=(...)                    # Your specific steps for the captive po
 
 #### Optional configuration options
 ```bash
-HOTSPOT_SSID="Pi-Hotspot"               # Fallback hotspot name
-HOTSPOT_PASSWORD="raspberry"            # Fallback hotspot password
-WLAN_DEVICE="wlan1"                     # WiFi interface name
+WLAN_DEVICE="wlan1"                      # WiFi interface name
 
 RETRY_ATTEMPTS=3                         # Attempts before hotspot fallback
 RETRY_DELAY=5                            # Delay between retries (seconds)
 LOGIN_TIMEOUT=30                         # Browser action timeout (seconds)
 BROWSER_WAIT=2                           # Delay between actions (seconds)
+
+HOTSPOT_ON_FAILURE="true"                # Create hotspot if all retries fail
+HOTSPOT_SSID="Pi-Hotspot"                # Fallback hotspot name
+HOTSPOT_PASSWORD="raspberry"             # Fallback hotspot password
 
 HEADLESS_MODE="true"                     # Set to false to show Firefox
 TRIGGER_URL="http://neverssl.com"        # Captive portal trigger URL
@@ -81,7 +83,7 @@ chmod +x ~/bin/captive-login.sh
 ~/bin/captive-login.sh
 ```
 
-The script will prompt for the username and password for the captive portal at runtime. It will then attempt to connect to the specified WiFi network, detect the captive portal, and execute the login sequence using Firefox and Selenium. If `HEADLESS_MODE` is set to `false`, Firefox opens visibly. If it fails after the specified number of attempts, it will create a fallback hotspot.
+The script will prompt for the username and password for the captive portal at runtime. It will then attempt to connect to the specified WiFi network, detect the captive portal, and execute the login sequence using Firefox and Selenium. If `HEADLESS_MODE` is set to `false`, Firefox opens visibly. If it fails after the specified number of attempts, it will create a fallback hotspot if configured.
 
 
 ## (Optional) Installation as service (autorun)

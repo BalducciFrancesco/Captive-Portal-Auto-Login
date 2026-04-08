@@ -8,8 +8,6 @@ set -e
 
 # WiFi & Network
 WIFI_SSID="YOUR_WIFI_SSID"                   # Your target WiFi network
-HOTSPOT_SSID="Pi-Hotspot"                     # Fallback hotspot name
-HOTSPOT_PASSWORD="raspberry"                  # Fallback hotspot password
 WLAN_DEVICE="wlan1"                           # WiFi interface name
 
 # Retry & Timing
@@ -17,6 +15,11 @@ RETRY_ATTEMPTS=3                              # Attempts before hotspot fallback
 RETRY_DELAY=5                                 # Delay between retries (seconds)
 LOGIN_TIMEOUT=30                              # Browser action timeout (seconds)
 BROWSER_WAIT=2                                # Delay between actions (seconds)
+
+# Fallback Hotspot
+HOTSPOT_ON_FAILURE="true"                     # Create hotspot if all retries fail
+HOTSPOT_SSID="Pi-Hotspot"                     # Fallback hotspot name
+HOTSPOT_PASSWORD="raspberry"                  # Fallback hotspot password
 
 # Browser & Paths
 HEADLESS_MODE="true"                          # Set to false to show Firefox
@@ -370,13 +373,21 @@ main() {
     ((attempt++))
   done
   
-  # All retries failed - activate hotspot fallback
-  activate_hotspot
-  
-  log "╔════════════════════════════════════════════════════════════╗"
-  log "║  ✗ FAILED - Hotspot activated as fallback                  ║"
-  log "║  Manual intervention may be required.                      ║"
-  log "╚════════════════════════════════════════════════════════════╝"
+  # All retries failed - activate hotspot fallback if enabled
+  if [ "$HOTSPOT_ON_FAILURE" = "true" ]; then
+    activate_hotspot
+    
+    log "╔════════════════════════════════════════════════════════════╗"
+    log "║  ✗ FAILED - Hotspot activated as fallback                  ║"
+    log "║  Manual intervention may be required.                      ║"
+    log "╚════════════════════════════════════════════════════════════╝"
+  else
+    log "╔════════════════════════════════════════════════════════════╗"
+    log "║  ✗ FAILED - All login attempts exhausted                   ║"
+    log "║  Hotspot creation disabled (HOTSPOT_ON_FAILURE).    ║"
+    log "║  Manual intervention may be required.                      ║"
+    log "╚════════════════════════════════════════════════════════════╝"
+  fi
   
   exit 1
 }
