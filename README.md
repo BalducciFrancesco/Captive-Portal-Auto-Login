@@ -90,7 +90,8 @@ Instead of running the script manually, you can set it up to run automatically a
 
 Just replace [step 4](#step-4-run-the-script) with the following command:
 ```bash
-./captive-login.sh --install-service
+chmod +x ~/bin/captive-login.sh
+~/bin/captive-login.sh --install-service
 ```
 
 This will:
