@@ -112,8 +112,8 @@ connect_wifi() {
   sudo nmcli device wifi rescan > /dev/null 2>&1 || true
   sleep 3
   
-  # Check if already connected to target SSID
-  CURRENT_SSID=$(sudo nmcli -t -f active,ssid dev wifi 2>/dev/null | grep -E "^yes" | awk -F: '{print $2}' | head -1 || echo "")
+  # Check if this specific device is already connected to target SSID
+  CURRENT_SSID=$(sudo nmcli -t -f active,ssid,device dev wifi 2>/dev/null | awk -F: -v dev="$WLAN_DEVICE" '$1=="yes" && $3==dev {print $2; exit}' || echo "")
   
   if [ "$CURRENT_SSID" = "$WIFI_SSID" ]; then
     log "Already connected to $WIFI_SSID"
@@ -124,15 +124,15 @@ connect_wifi() {
   sudo nmcli device disconnect "$WLAN_DEVICE" 2>/dev/null || true
   sleep 2
   
-  # Connect to target WiFi
-  sudo nmcli device wifi connect "$WIFI_SSID" 2>/dev/null || {
+  # Connect to target WiFi on the configured interface only
+  sudo nmcli device wifi connect "$WIFI_SSID" ifname "$WLAN_DEVICE" 2>/dev/null || {
     log_error "Failed to connect to WiFi"
     return 1
   }
   
   # Wait for connection to establish
   for i in {1..15}; do
-    if nmcli -t -f active,ssid dev wifi 2>/dev/null | grep -q "^yes:$WIFI_SSID"; then
+    if nmcli -t -f active,ssid,device dev wifi 2>/dev/null | awk -F: -v ssid="$WIFI_SSID" -v dev="$WLAN_DEVICE" '$1=="yes" && $2==ssid && $3==dev {found=1} END{exit(found?0:1)}'; then
       log "✓ WiFi connected"
       sleep 2
       return 0
