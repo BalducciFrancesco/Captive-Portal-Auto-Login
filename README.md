@@ -21,7 +21,7 @@ You need to customize the `LOGIN_SEQUENCE` property with the correct CSS selecto
 3. Right-click → Inspect Element
 4. Take note of the [CSS selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors) for the exact step you would perform manually:
     - Button IDs/classes for clicks: `button#login`, `a.accept-tos`, etc.
-    - Input field names for credentials: `input[name="UserId"]`, `input#password"`, etc.
+    - Input field names for credentials: `input[name="UserId"]`, `input#password`, etc.
 5. Update `LOGIN_SEQUENCE` with the correct selectors
 
 ## Usage
@@ -30,7 +30,9 @@ You need to customize the `LOGIN_SEQUENCE` property with the correct CSS selecto
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip firefox-esr network-manager
+sudo apt-get install -y python3 python3-pip python3-venv firefox-esr network-manager
+python3 -m venv .venv
+source .venv/bin/activate
 pip install selenium
 ```
 
@@ -109,7 +111,7 @@ Due to the nature of captive portals and the wide variety of implementations, yo
 | "Internet not reachable after login" | Login executed but portal didn't authenticate | Verify credentials are correct; portal may require additional steps (e.g., accept ToS) |
 | "WiFi connection failed" | SSID name may be wrong or network out of range | Check SSID spelling in config; ensure WiFi is in range; verify with `nmcli device wifi list` |
 | "Firefox not found" | Browser not installed | Run: `sudo apt-get install firefox-esr` |
-| "Selenium import error" | Python module not available | Run: `pip install selenium` |
+| "Selenium import error" | Python module not available | Run in a venv: `python3 -m venv .venv && source .venv/bin/activate && pip install selenium` |
 
 Here are some specific commands to help you debug:
 

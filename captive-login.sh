@@ -22,6 +22,7 @@ BROWSER_WAIT=2                                # Delay between actions (seconds)
 HEADLESS_MODE="true"                          # Set to false to show Firefox
 TRIGGER_URL="http://neverssl.com"             # Captive portal trigger URL
 SERVICE_NAME="captive-login"                  # systemd service name
+VENV_PYTHON_PATH="$HOME/.venv/bin/python3"
 
 # Login sequence - format: [{'action': 'click', 'selector': 'a'}, ... ]
 # Supported actions: "click", "fill-username", "fill-password"
@@ -189,7 +190,7 @@ run_browser_login() {
   local escaped_password=$(echo "$PASSWORD" | sed "s/'/'\\\''/g")
   
   # Inline Python script for browser automation
-  python3 << PYTHON_EOF
+  "$VENV_PYTHON_PATH" << PYTHON_EOF
     import sys
     import time
     import ast
